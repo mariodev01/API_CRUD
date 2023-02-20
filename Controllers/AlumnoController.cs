@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApi_Alumnos.Models;
 using WebApi_Alumnos.Models.DTO;
+using WebApi_Alumnos.Repository.IRepository;
 
 namespace WebApi_Alumnos.Controllers
 {
@@ -13,67 +14,68 @@ namespace WebApi_Alumnos.Controllers
     {
         private readonly IMapper _mapper;
         private readonly ApplicationDbContext _context;
+        private readonly IAlumno _alumno;
 
-        public AlumnoController(IMapper mapper,ApplicationDbContext context)
+        public AlumnoController(IMapper mapper,ApplicationDbContext context,IAlumno alumno)
         {
             _mapper = mapper;
             _context = context;
+            _alumno = alumno;
         }
         [HttpGet]
-        public async Task<ActionResult<List<AlumnoDTO>>> Get()
+        public async Task<ActionResult> Get()
         {
-            var alumnos = await _context.Alumnos.ToListAsync();
-            return Ok(_mapper.Map<List<AlumnoDTO>>(alumnos));
+            var alumnos = await _alumno.GetAll();
+            //var alumnos = await _context.Alumnos.ToListAsync();
+            return Ok(alumnos);
         }
         [HttpGet("{id:int}")]
-        public async Task<ActionResult<AlumnoDTO>> GetId(int id)
+        public async Task<ActionResult> GetId(int id)
         {
-            var alumno = await _context.Alumnos.FirstOrDefaultAsync(a=>a.Id== id);
+            var alumno = await _alumno.GetById(id);
             if(alumno == null)
             {
                 return NotFound();
             }
 
-            return Ok(_mapper.Map<AlumnoDTO>(alumno));
+            return Ok(alumno);
         }
         [HttpPost]
-        public async Task<ActionResult> Post([FromBody] AlumnoCreateDTO alumnoCreate)
+        public async Task<ActionResult> Post(AlumnoCreateDTO alumnoCreate)
         {
-            var alumnos = _mapper.Map<Alumno>(alumnoCreate);
-
-            await _context.AddAsync(alumnos);
-            await _context.SaveChangesAsync();
-            return Ok(alumnos);
+            Alumno modelo = _mapper.Map<Alumno>(alumnoCreate);
+            
+            await _alumno.Crear(modelo);
+            return NoContent();
         }
 
         [HttpPut("{id:int}")]
         public async Task<ActionResult> Update( int id, [FromBody] AlumnoCreateDTO alumnoCreate)
         {
-            var existeAlumno = await _context.Alumnos.AnyAsync(a => a.Id == id);
-
-            if (!existeAlumno)
+            var alumno = await _alumno.GetById(id);
+            if (alumno == null)
             {
                 return NotFound();
             }
+            //Alumno modelo = _mapper.Map<Alumno>(alumnoCreate);
+            alumno.Nombre = alumnoCreate.Nombre;
+            alumno.Carrera = alumnoCreate.Carrera;
+            alumno.Edad = alumnoCreate.Edad;
+            await _alumno.Actualizar(alumno);
 
-            var alumno = _mapper.Map<Alumno>(alumnoCreate);
-            alumno.Id= id;
-            _context.Update(alumno);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete]
         public async Task<ActionResult> Delete(int id)
         {
-            var existeAlumno = await _context.Alumnos.AnyAsync(a => a.Id == id);
-            if (!existeAlumno)
+            var alumno = await _alumno.GetById(id);
+            if (alumno == null)
             {
                 return NotFound();
             }
 
-            _context.Remove(new Alumno { Id = id});
-            await _context.SaveChangesAsync();
+            await _alumno.Borrar(id);
             return NoContent();
         }
 

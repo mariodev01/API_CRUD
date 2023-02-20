@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using WebApi_Alumnos;
+using WebApi_Alumnos.Models;
+using WebApi_Alumnos.Repository;
+using WebApi_Alumnos.Repository.IRepository;
 using WebApi_Alumnos.Utilidades;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -16,6 +19,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
+builder.Services.AddScoped<IAlumno,AlumnoRepository>();
 
 var app = builder.Build();
 
